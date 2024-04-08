@@ -90,18 +90,22 @@ def finetune(config, model, train_loader, device, full_x_sim, test_loader):
 def main(config):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu') 
     
+    # 转无向图，1：9分train/test，seed为参数输入，数据集为节点分类
     dataset_obj = NodeDataset(config.dataset, n_seeds=config.seeds)
     dataset_obj.print_statistics()
     
     # For large graph, we use cpu to preprocess it rather than gpu because of OOM problem.
     if dataset_obj.num_nodes < 30000:
         dataset_obj.to(device)
+    torch.set_printoptions(profile="full")
     print(dataset_obj.data.x[0])
-    x_sim = obtain_attributes(dataset_obj.data, use_adj=False, threshold=config.threshold).to(device)
+    torch.set_printoptions(profile="default") 
+    
+    num_node_features = config.num_dim
+    x_sim = obtain_attributes(dataset_obj.data, use_adj=False, threshold=config.threshold, num_node_features).to(device)
     print(x_sim[0])
     
     dataset_obj.to('cpu') # Otherwise the deepcopy will raise an error
-    num_node_features = config.num_dim
 
     train_masks = dataset_obj.data.train_mask
     test_masks = dataset_obj.data.test_mask
