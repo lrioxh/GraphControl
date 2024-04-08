@@ -96,7 +96,9 @@ def main(config):
     # For large graph, we use cpu to preprocess it rather than gpu because of OOM problem.
     if dataset_obj.num_nodes < 30000:
         dataset_obj.to(device)
+    print(dataset_obj.data.x[0])
     x_sim = obtain_attributes(dataset_obj.data, use_adj=False, threshold=config.threshold).to(device)
+    print(x_sim[0])
     
     dataset_obj.to('cpu') # Otherwise the deepcopy will raise an error
     num_node_features = config.num_dim

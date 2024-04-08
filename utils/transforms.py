@@ -26,7 +26,7 @@ def obtain_attributes(data, use_adj=False, threshold=0.1, num_dim=32):
         L = torch.from_numpy(L)
         V = torch.from_numpy(V)
     else:
-        L, V = torch.linalg.eigh(tmp) # much faster than torch.linalg.eig
+        L, V = torch.linalg.eigh(tmp) # much faster than torch.linalg.eig, 特征值分解
     
     x = V[:, :num_dim].float()
     import sklearn.preprocessing as preprocessing
