@@ -15,7 +15,7 @@ class Arguments:
                                  choices=['relu', 'elu', 'hardtanh', 'leakyrelu', 'prelu', 'rrelu'])
         self.parser.add_argument('--use_bn', action='store_true', help="use BN or not")
         self.parser.add_argument('--model', type=str, help="model name", default='GCC_GraphControl', 
-                                 choices=['GCC', 'GCC_GraphControl'])
+                                 choices=['GCC', 'GCC_GraphControl', 'GCC_LoRA'])
     
         # Training settings
         self.parser.add_argument('--optimizer', type=str, help="the kind of optimizer", default='adam', 

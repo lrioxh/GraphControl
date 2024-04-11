@@ -7,6 +7,7 @@ from torch_geometric.nn import GINConv
 from torch_geometric.nn import global_mean_pool, global_add_pool, global_max_pool
 from utils.register import register
 import copy
+from .gcc_lora import GCC_LoRA
 from .gcc import GCC
 
 @register.model_register
@@ -21,7 +22,7 @@ class GCC_GraphControl(nn.Module):
         hidden_size = kwargs['node_hidden_dim']
         output_dim = kwargs['num_classes']
         
-        self.encoder = GCC(**kwargs)
+        self.encoder = GCC_LoRA(**kwargs)
         self.trainable_copy = copy.deepcopy(self.encoder)
         
         self.zero_conv1 = torch.nn.Linear(input_dim, input_dim)     
@@ -45,19 +46,19 @@ class GCC_GraphControl(nn.Module):
     
     def forward_subgraph(self, x, x_sim, edge_index, batch, root_n_id, edge_weight=None, frozen=False, **kwargs):
         if frozen:
-            with torch.no_grad():
-                self.encoder.eval()
-                out = self.encoder.forward_subgraph(x, edge_index, batch, root_n_id)
+            # with torch.no_grad():
+                # self.encoder.eval()
+            out = self.encoder.forward_subgraph(x, edge_index, batch, root_n_id)
 
-            x_down = self.zero_conv1(x_sim)
-            x_down = x_down + x
+            # x_down = self.zero_conv1(x_sim)
+            # x_down = x_down + x     #PE？
             
-            # for simplicity, we use edge_index to calculate degrees
-            x_down = self.trainable_copy.forward_subgraph(x_down, edge_index, batch, root_n_id)
+            # # for simplicity, we use edge_index to calculate degrees
+            # x_down = self.trainable_copy.forward_subgraph(x_down, edge_index, batch, root_n_id)     #forward_subgraph from gcc
             
-            x_down = self.zero_conv2(x_down)
+            # x_down = self.zero_conv2(x_down)
             
-            out = x_down + out
+            # out = x_down + out  #特征合并
         else:
             raise NotImplementedError('Please freeze pre-trained models')
         

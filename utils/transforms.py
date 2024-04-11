@@ -26,7 +26,7 @@ def obtain_attributes(data, use_adj=False, threshold=0.1, num_dim=32):
         L = torch.from_numpy(L)
         V = torch.from_numpy(V)
     else:
-        L, V = torch.linalg.eigh(tmp) # much faster than torch.linalg.eig, 特征值分解
+        L, V = torch.linalg.eigh(tmp) # much faster than torch.linalg.eig, 特征值分解，特征值 L 和特征向量 V
     
     x = V[:, :num_dim].float()
     import sklearn.preprocessing as preprocessing
@@ -93,9 +93,9 @@ def process_attributes(data, use_adj=False, threshold=0.1, num_dim=32, soft=Fals
         V = torch.tensor(V, dtype=torch.float32)
         x = torch.nn.functional.pad(V, (0, num_dim-V.shape[0]))
         data.x = x.float()
-        data.eigen_val = torch.nn.functional.pad(L_sort, (0, num_dim-L_sort.shape[0])).unsqueeze(0)
+        data.eigen_val = torch.nn.functional.pad(L_sort, (0, num_dim-L_sort.shape[0])).unsqueeze(0) #填充
     else:
-        x = V[:, 0:num_dim].float()
+        x = V[:, 0:num_dim].float() #截取
         x = preprocessing.normalize(x, norm="l2")
         x = torch.tensor(x, dtype=torch.float32)
         data.x = x.float()

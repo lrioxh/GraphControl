@@ -12,6 +12,8 @@ from models import load_model
 from datasets import NodeDataset
 from optimizers import create_optimizer
 
+import loralib as lora
+
 
 def preprocess(config, dataset_obj, device):
     kwargs = {'batch_size': config.batch_size, 'num_workers': 4, 'persistent_workers': True, 'pin_memory': True}
@@ -20,7 +22,7 @@ def preprocess(config, dataset_obj, device):
     
     train_idx = dataset_obj.data.train_mask.nonzero().squeeze()
     test_idx = dataset_obj.data.test_mask.nonzero().squeeze()
-    
+    # 随机游走子图
     train_graphs = collect_subgraphs(train_idx, dataset_obj.data, walk_steps=config.walk_steps, restart_ratio=config.restart)
     test_graphs = collect_subgraphs(test_idx, dataset_obj.data, walk_steps=config.walk_steps, restart_ratio=config.restart)
 
@@ -35,10 +37,12 @@ def preprocess(config, dataset_obj, device):
 
 
 def finetune(config, model, train_loader, device, full_x_sim, test_loader):
+    # print(model.named_parameters())
     # freeze the pre-trained encoder (left branch)
-    for k, v in model.named_parameters():
-        if 'encoder' in k:
-            v.requires_grad = False
+    # for k, v in model.named_parameters():
+    #     if 'encoder' in k:
+    #         v.requires_grad = False
+    lora.mark_only_lora_as_trainable(model)
             
     model.reset_classifier()
     eval_steps = 3
@@ -60,7 +64,7 @@ def finetune(config, model, train_loader, device, full_x_sim, test_loader):
             
             if not hasattr(data, 'root_n_id'):
                 data.root_n_id = data.root_n_index
-
+            #from gcc sign flip, because the sign of eigen-vectors can be filpped randomly (annotate this operate if we conduct eigen-decomposition on full graph)
             sign_flip = torch.rand(data.x.size(1)).to(device)
             sign_flip[sign_flip>=0.5] = 1.0; sign_flip[sign_flip<0.5] = -1.0
             x = data.x * sign_flip.unsqueeze(0)
@@ -69,6 +73,8 @@ def finetune(config, model, train_loader, device, full_x_sim, test_loader):
             preds = model.forward_subgraph(x, x_sim, data.edge_index, data.batch, data.root_n_id, frozen=True)
                 
             loss = criterion(preds, data.y)
+            # element 0 of tensors does not require grad and does not have a grad_fn
+            # loss.requires_grad = True
             loss.backward()
             optimizer.step()
     
@@ -102,7 +108,7 @@ def main(config):
     torch.set_printoptions(profile="default") 
     
     num_node_features = config.num_dim
-    x_sim = obtain_attributes(dataset_obj.data, use_adj=False, threshold=config.threshold, num_node_features).to(device)
+    x_sim = obtain_attributes(dataset_obj.data, use_adj=False, threshold=config.threshold, num_dim=config.num_dim).to(device)
     print(x_sim[0])
     
     dataset_obj.to('cpu') # Otherwise the deepcopy will raise an error
@@ -121,6 +127,7 @@ def main(config):
         train_loader, test_loader = preprocess(config, dataset_obj, device)
         
         model = load_model(num_node_features, dataset_obj.num_classes, config)
+        # lora.mark_only_lora_as_trainable(model)
         model = model.to(device)
 
         # finetuning model

@@ -1,10 +1,10 @@
 from utils.register import register
 import torch
 from .gcc import change_params_key
-
+import loralib as lora
 
 def load_model(input_dim: int, output_dim: int, config):
-    if config.model in ['GCC', 'GCC_GraphControl']:
+    if config.model in ['GCC', 'GCC_GraphControl', 'GCC_LoRA']:
         state_dict = torch.load('checkpoint/gcc.pth', map_location='cpu')
         opt = state_dict['opt']
         model = register.models[config.model](
@@ -25,15 +25,20 @@ def load_model(input_dim: int, output_dim: int, config):
             degree_input=True,
             num_classes = output_dim
         )
+        # lora.mark_only_lora_as_trainable(model)
+        # model.load_state_dict(torch.load('ckpt_pretrained.pt'), strict=False)
         params = state_dict['model']
         change_params_key(params)
 
         if config.model == 'GCC':
             model.load_state_dict(params)
             return model
+        elif config.model == 'GCC_LoRA':
+            model.load_state_dict(params, strict=False)
+            return model
         elif config.model == 'GCC_GraphControl':
-            model.encoder.load_state_dict(params)
-            model.trainable_copy.load_state_dict(params)
+            model.encoder.load_state_dict(params, strict=False)
+            # model.trainable_copy.load_state_dict(params, strict=False)
             return model
     else:
         return register.models[config.model](input_dim=input_dim, output_dim=output_dim, **vars(config))

@@ -117,7 +117,7 @@ class RWR:
         x_view = Data(edge_index=edge_index, x=x, center=node_idx_map[center_idx], original_idx=node_idx, y=full_g.y[center_idx], root_n_index=node_idx_map[center_idx])
         return x_view
     
-    
+#子图采样    
 def collect_subgraphs(selected_id, graph, walk_steps=20, restart_ratio=0.5):
     graph  = copy.deepcopy(graph) # modified on the copy
     edge_index = graph.edge_index
@@ -126,14 +126,14 @@ def collect_subgraphs(selected_id, graph, walk_steps=20, restart_ratio=0.5):
     graph_num = start_nodes.shape[0]
     
     value = torch.arange(edge_index.size(1))
-    adj_t = SparseTensor(row=edge_index[0], col=edge_index[1],
+    adj_t = SparseTensor(row=edge_index[0], col=edge_index[1],  #创建了稀疏邻接矩阵
                                     value=value,
                                     sparse_sizes=(node_num, node_num)).t()
     
     current_nodes = start_nodes.clone()
     history = start_nodes.clone().unsqueeze(0)
     signs = torch.ones(graph_num, dtype=torch.bool).unsqueeze(0)
-    for i in range(walk_steps):
+    for i in range(walk_steps):     #随机游走
         seed = torch.rand([graph_num])
         nei = adj_t.sample(1, current_nodes).squeeze()
         sign = seed < restart_ratio
